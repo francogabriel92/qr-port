@@ -1,6 +1,6 @@
 {
   "name": "qr-port",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Generate QR codes for local development servers",
   "main": "src/index.js",
   "bin": {
