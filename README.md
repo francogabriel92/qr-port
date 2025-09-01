@@ -17,6 +17,10 @@ Expose local ports as QR codes in your terminal for easy access from mobile devi
 Run directly without installing using npx:
 
 ```bash
+npx qr-port
+```
+
+```bash
 npx qr-port 3000
 ```
 
@@ -34,16 +38,45 @@ qr-port 3000
 
 This will display a QR code in your terminal. Scan it with your mobile device to access `http://<your-local-ip>:3000`.
 
-### Options
+## Vite or Next.js Integration
 
-- Specify a custom host:
-  ```bash
-  qr-port 3000 --host 127.0.0.1
-  ```
-- Show help:
-  ```bash
-  qr-port --help
-  ```
+For Vite or Next.js projects, you can integrate `qr-port` into your development workflow easily.
+
+### Vite
+
+1. Modify the dev script to your `package.json`:
+
+   ```json
+   {
+     "scripts": {
+       "dev": "npx qr-port 3000 & vite" // Replace with your port
+     }
+   }
+   ```
+
+2. Run the script:
+
+```bash
+npm run dev
+```
+
+### Next.js
+
+1. Modify the dev script to your `package.json`:
+
+   ```json
+   {
+     "scripts": {
+       "dev": "npx qr-port 3000 & next dev" // Replace with your port
+     }
+   }
+   ```
+
+2. Run the script:
+
+```bash
+npm run dev
+```
 
 ## Requirements
 
