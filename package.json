@@ -1,0 +1,27 @@
+{
+  "name": "qr-port",
+  "version": "1.0.0",
+  "description": "Generate QR codes for local development servers",
+  "main": "src/index.js",
+  "bin": {
+    "qr-port": "src/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js 3000"
+  },
+  "keywords": [
+    "qr",
+    "qr-code",
+    "development",
+    "local-server",
+    "mobile",
+    "cli"
+  ],
+  "author": "Franco Sánchez <francog.sanchez@hotmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "qrcode-terminal": "^0.12.0"
+  }
+}
