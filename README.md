@@ -12,6 +12,12 @@ Expose local ports as QR codes in your terminal for easy access from mobile devi
 - Scan with your phone to open the service instantly
 - Simple CLI usage
 
+## Output example
+
+When you run `npx qr-port 3000`, you will see a QR code in your terminal that looks like this:
+
+![QR code example](https://github.com/francogabriel92/qr-port/blob/main/docs/example.png?raw=true)
+
 ## Usage
 
 Run directly without installing using npx:

@@ -19,6 +19,13 @@
     "mobile",
     "cli"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/francogabriel92/qr-port.git"
+  },
+  "bugs": {
+    "url": "https://github.com/francogabriel92/qr-port/issues"
+  },
   "author": "Franco Sánchez <francog.sanchez@hotmail.com>",
   "license": "MIT",
   "dependencies": {
