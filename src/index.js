@@ -51,25 +51,24 @@ function getLocalIP() {
   return candidates.length > 0 ? candidates[0].address : null;
 }
 
+const DEFAULT_PORT = 3000;
+
 /**
  * Parse and validate the port number
- * @param {string} portArg - The port argument from command line
+ * @param {string|undefined} portArg - The port argument from command line
  * @returns {number} Valid port number
  */
 function parsePort(portArg) {
-  const DEFAULT_PORT = 3000;
-
   if (!portArg) {
     return DEFAULT_PORT;
   }
 
-  const port = parseInt(portArg, 10);
+  const port = Number(portArg);
 
-  if (isNaN(port) || port < 1 || port > 65535) {
-    console.error(
-      `❌ Invalid port: ${portArg}. Using default port ${DEFAULT_PORT}`
-    );
-    return DEFAULT_PORT;
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    console.error(`❌ Invalid port: ${portArg}`);
+    console.error("   Expected an integer between 1 and 65535.");
+    exit(1);
   }
 
   return port;
