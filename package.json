@@ -16,7 +16,8 @@
   },
   "scripts": {
     "start": "node src/cli.js",
-    "dev": "node src/cli.js 3000"
+    "dev": "node src/cli.js 3000",
+    "test": "node --test"
   },
   "keywords": [
     "qr",
