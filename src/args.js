@@ -4,21 +4,24 @@ export const HELP = `
 📱 QR Port - Generate QR codes for local development servers
 
 Usage:
-  qr-port [port]
+  qr-port [port] [options]
 
 Arguments:
-  port        Port number (1-65535, default: ${DEFAULT_PORT})
+  port              Port number (1-65535, default: ${DEFAULT_PORT})
 
 Options:
-  --url       Print just the URL
-  --json      Print the result as JSON
-  -h, --help  Show this help
+  --host <address>  Use this address instead of detecting the LAN IP
+  --https           Build an https:// URL
+  --url             Print just the URL
+  --json            Print the result as JSON
+  -h, --help        Show this help
 
 Examples:
-  qr-port                    # Uses port ${DEFAULT_PORT}
-  qr-port 8080               # Uses port 8080
-  open $(qr-port 8080 --url) # Pipe the URL somewhere else
-  qr-port 8080 --json        # { "url": "...", "host": "...", ... }
+  qr-port                       # Uses port ${DEFAULT_PORT}
+  qr-port 8080                  # Uses port 8080
+  open $(qr-port 8080 --url)    # Pipe the URL somewhere else
+  qr-port 8080 --json           # { "url": "...", "host": "...", ... }
+  qr-port 8080 --host 10.0.0.5  # When detection picks the wrong address
 
 The QR code will contain the URL to access your local server from mobile devices.
 `;
@@ -27,14 +30,24 @@ The QR code will contain the URL to access your local server from mobile devices
  * Parse the command line arguments.
  *
  * @param {string[]} args Arguments after the node binary and the script path.
- * @returns {{ port: number, format: "qr" | "url" | "json", command: "generate" | "help" }}
- * @throws {Error} On an unknown option, an extra argument or an invalid port.
+ * @returns {{ port: number, host: string | null, protocol: "http" | "https",
+ *   format: "qr" | "url" | "json", command: "generate" | "help" }}
+ * @throws {Error} On an unknown option, a missing value, an extra argument or
+ *   an invalid port.
  */
 export function parseArgs(args) {
-  const options = { port: DEFAULT_PORT, format: "qr", command: "generate" };
+  const options = {
+    port: DEFAULT_PORT,
+    host: null,
+    protocol: "http",
+    format: "qr",
+    command: "generate",
+  };
   let portSeen = false;
 
-  for (const arg of args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
     switch (arg) {
       case "-h":
       case "--help":
@@ -44,6 +57,13 @@ export function parseArgs(args) {
         break;
       case "--json":
         options.format = "json";
+        break;
+      case "--https":
+        options.protocol = "https";
+        break;
+      case "--host":
+        options.host = args[++i] ?? null;
+        if (!options.host) throw new Error("--host requires an address.");
         break;
       default:
         if (arg.startsWith("-")) throw new Error(`Unknown option: ${arg}`);

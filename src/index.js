@@ -51,29 +51,39 @@ export function listLanAddresses(interfaces = networkInterfaces()) {
 /**
  * Build the URL a phone on the same network can use to reach a local server.
  *
- * @param {{ port?: number }} [options]
- * @returns {{ url: string, host: string, port: number, interface: string }}
+ * @param {{ port?: number, host?: string, protocol?: "http" | "https" }} [options]
+ *   `host` skips detection entirely; `interface` comes back null in that case.
+ * @returns {{ url: string, host: string, port: number, protocol: string,
+ *   interface: string | null }}
  * @throws {Error} If the port is invalid or no LAN address is available.
  */
-export function resolveLanUrl({ port = DEFAULT_PORT } = {}) {
+export function resolveLanUrl({
+  port = DEFAULT_PORT,
+  host,
+  protocol = "http",
+} = {}) {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error(
       `Invalid port: ${port}. Expected an integer between 1 and 65535.`
     );
   }
 
-  const [target] = listLanAddresses();
+  const target = host
+    ? { interface: null, address: host }
+    : listLanAddresses()[0];
 
   if (!target) {
     throw new Error(
-      "No LAN IPv4 address found. Make sure you are connected to a network."
+      "No LAN IPv4 address found. Make sure you are connected to a network, " +
+        "or pass one explicitly with --host."
     );
   }
 
   return {
-    url: `http://${target.address}:${port}`,
+    url: `${protocol}://${target.address}:${port}`,
     host: target.address,
     port,
+    protocol,
     interface: target.interface,
   };
 }

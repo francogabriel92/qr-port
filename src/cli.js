@@ -31,7 +31,7 @@ function main() {
     return;
   }
 
-  RENDER[options.format](resolveLanUrl({ port: options.port }));
+  RENDER[options.format](resolveLanUrl(options));
 }
 
 try {
