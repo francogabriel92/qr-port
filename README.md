@@ -89,7 +89,7 @@ npm run dev
 
 ## Requirements
 
-- Node.js >= 14
+- Node.js >= 18
 - Terminal with QR code display support
 
 ## License
