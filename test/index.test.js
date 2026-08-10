@@ -127,3 +127,20 @@ describe("resolveLanUrl", () => {
     assert.equal(resolveLanUrl().port, DEFAULT_PORT);
   });
 });
+
+describe("resolveLanUrl overrides", () => {
+  it("uses an explicit host and reports no interface", () => {
+    const result = resolveLanUrl({ port: 8080, host: "10.0.0.5" });
+
+    assert.equal(result.url, "http://10.0.0.5:8080");
+    assert.equal(result.host, "10.0.0.5");
+    assert.equal(result.interface, null);
+  });
+
+  it("builds an https URL", () => {
+    const result = resolveLanUrl({ port: 8080, protocol: "https" });
+
+    assert.equal(result.protocol, "https");
+    assert.match(result.url, /^https:\/\//);
+  });
+});

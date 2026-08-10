@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0]
+
+Everything here is additive. `qr-port 3000` still prints the same QR code it
+always did.
+
+### Added
+
+- **Machine-readable output.** `--url` prints the URL alone; `--json` prints
+  `{url, host, port, protocol, interface}`. Under `--json`, failures arrive on
+  stderr as `{"error": "..."}`, so a caller never has to read prose to detect
+  one. The QR code is ~25 lines of block characters — the right output for a
+  person, and useless to anything reading stdout.
+- **`--list`.** Every detected LAN address, ranked. When the chosen one turns out
+  to be unreachable, this is what tells you which to pass to `--host`.
+- **`--host <address>`.** Skips detection. The escape hatch for topologies
+  ranking cannot resolve on its own; `interface` comes back `null`.
+- **`--https`.** For dev servers running TLS.
+- **`--version`.**
+- **An agent skill**, in the [Agent Skills](https://agentskills.io) format read
+  by Claude Code, Cursor, Codex, Copilot and others. Install with
+  `npx skills add francogabriel92/qr-port`. It tells an agent to prefer `--url`
+  over the QR code, to stay on the LAN rather than reach for a tunnelling
+  service, and how to diagnose a URL that does not load. Ships in the package so
+  it cannot drift from the flags it documents.
+
+### Changed
+
+- Unknown options are rejected instead of being parsed as a port
+  (`qr-port --foo` used to fail with "Invalid port: --foo"), and a second
+  positional argument is no longer silently ignored.
+
 ## [1.1.0]
 
 A correctness release. The QR code frequently pointed at an address no phone
