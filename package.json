@@ -9,7 +9,8 @@
   "exports": "./src/index.js",
   "type": "module",
   "files": [
-    "src"
+    "src",
+    "skills"
   ],
   "engines": {
     "node": ">=18"
