@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createRequire } from "node:module";
 import { argv, exit } from "node:process";
 import qrcode from "qrcode-terminal";
 import { HELP, parseArgs } from "./args.js";
@@ -41,6 +42,11 @@ function main() {
 
   if (options.command === "help") {
     console.log(HELP);
+    return;
+  }
+
+  if (options.command === "version") {
+    console.log(createRequire(import.meta.url)("../package.json").version);
     return;
   }
 

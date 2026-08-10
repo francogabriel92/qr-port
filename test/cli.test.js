@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
@@ -74,5 +75,17 @@ describe("cli --list", () => {
     assert.ok(addresses.length > 0);
     assert.ok(addresses[0].interface);
     assert.match(addresses[0].address, /^[\d.]+$/);
+  });
+});
+
+describe("cli --version", () => {
+  it("prints the version from package.json", () => {
+    const { status, stdout } = run("--version");
+    const { version } = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8")
+    );
+
+    assert.equal(status, 0);
+    assert.equal(stdout.trim(), version);
   });
 });

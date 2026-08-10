@@ -16,6 +16,7 @@ Options:
   --json            Print the result as JSON
   --list            List every LAN address found, best candidate first
   -h, --help        Show this help
+  -v, --version     Show the version
 
 Examples:
   qr-port                       # Uses port ${DEFAULT_PORT}
@@ -33,7 +34,8 @@ The QR code will contain the URL to access your local server from mobile devices
  *
  * @param {string[]} args Arguments after the node binary and the script path.
  * @returns {{ port: number, host: string | null, protocol: "http" | "https",
- *   format: "qr" | "url" | "json", command: "generate" | "list" | "help" }}
+ *   format: "qr" | "url" | "json",
+ *   command: "generate" | "list" | "help" | "version" }}
  * @throws {Error} On an unknown option, a missing value, an extra argument or
  *   an invalid port.
  */
@@ -54,6 +56,9 @@ export function parseArgs(args) {
       case "-h":
       case "--help":
         return { ...options, command: "help" };
+      case "-v":
+      case "--version":
+        return { ...options, command: "version" };
       case "--list":
         options.command = "list";
         break;
