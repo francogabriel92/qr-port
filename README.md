@@ -87,9 +87,29 @@ npm run dev
 npm run dev
 ```
 
+## Programmatic API
+
+The address detection is exported too, in case you want the URL without the QR
+code — for example to print it from your own dev script:
+
+```js
+import { resolveLanUrl, listLanAddresses } from "qr-port";
+
+resolveLanUrl({ port: 5173 });
+// { url: 'http://192.168.1.10:5173', host: '192.168.1.10', port: 5173, interface: 'en0' }
+
+listLanAddresses();
+// [{ interface: 'en0', address: '192.168.1.10' }, ...] — best candidate first
+```
+
+`resolveLanUrl` throws if the port is outside 1-65535, or if the machine has no
+LAN address at all. `listLanAddresses` returns every usable IPv4 address it
+found, ordered by how likely it is to be reachable from a phone: virtual
+interfaces (Docker, VPNs, VMs) rank last, and link-local addresses are excluded.
+
 ## Requirements
 
-- Node.js >= 14
+- Node.js >= 18
 - Terminal with QR code display support
 
 ## License
