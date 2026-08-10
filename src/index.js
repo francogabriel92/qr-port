@@ -1,9 +1,6 @@
-#!/usr/bin/env node
-"use strict";
+import { networkInterfaces } from "node:os";
 
-import { networkInterfaces } from "os";
-import { argv, exit } from "process";
-import qrcode from "qrcode-terminal";
+export const DEFAULT_PORT = 3000;
 
 // Interfaces created by VMs, containers, VPNs and peer-to-peer links. They hold
 // valid IPv4 addresses that no phone on the LAN can reach, so they rank last.
@@ -21,107 +18,62 @@ const isIPv4 = (net) => net.family === "IPv4" || net.family === 4;
 /**
  * Rank a candidate address. Higher is more likely to be reachable from a phone
  * sitting on the same network.
- * @param {{name: string, address: string}} candidate
+ * @param {{ interface: string, address: string }} candidate
  * @returns {number}
  */
-function rank({ name, address }) {
-  if (VIRTUAL_INTERFACE.test(name)) return 0;
-  return PRIVATE_RANGE.test(address) ? 2 : 1;
+function rank(candidate) {
+  if (VIRTUAL_INTERFACE.test(candidate.interface)) return 0;
+  return PRIVATE_RANGE.test(candidate.address) ? 2 : 1;
 }
 
 /**
- * Get the local network IP address most likely to be reachable from a phone.
- * @returns {string|null} The best local IP address, or null if none found
+ * List the machine's LAN IPv4 addresses, best candidate first.
+ *
+ * @param {ReturnType<typeof networkInterfaces>} [interfaces] Defaults to the
+ *   real interfaces; injectable so the ranking can be tested.
+ * @returns {Array<{ interface: string, address: string }>}
  */
-function getLocalIP() {
-  const interfaces = networkInterfaces();
+export function listLanAddresses(interfaces = networkInterfaces()) {
   const candidates = [];
 
   for (const [name, nets] of Object.entries(interfaces)) {
     for (const net of nets ?? []) {
       if (!isIPv4(net) || net.internal || LINK_LOCAL.test(net.address)) continue;
-      candidates.push({ name, address: net.address });
+      candidates.push({ interface: name, address: net.address });
     }
   }
 
   // Array#sort is stable, so ties keep the order reported by the OS, which
   // already lists the primary interface first.
-  candidates.sort((a, b) => rank(b) - rank(a));
-
-  return candidates.length > 0 ? candidates[0].address : null;
+  return candidates.sort((a, b) => rank(b) - rank(a));
 }
 
-const DEFAULT_PORT = 3000;
-
 /**
- * Parse and validate the port number
- * @param {string|undefined} portArg - The port argument from command line
- * @returns {number} Valid port number
+ * Build the URL a phone on the same network can use to reach a local server.
+ *
+ * @param {{ port?: number }} [options]
+ * @returns {{ url: string, host: string, port: number, interface: string }}
+ * @throws {Error} If the port is invalid or no LAN address is available.
  */
-function parsePort(portArg) {
-  if (!portArg) {
-    return DEFAULT_PORT;
-  }
-
-  const port = Number(portArg);
-
+export function resolveLanUrl({ port = DEFAULT_PORT } = {}) {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    console.error(`❌ Invalid port: ${portArg}`);
-    console.error("   Expected an integer between 1 and 65535.");
-    exit(1);
+    throw new Error(
+      `Invalid port: ${port}. Expected an integer between 1 and 65535.`
+    );
   }
 
-  return port;
+  const [target] = listLanAddresses();
+
+  if (!target) {
+    throw new Error(
+      "No LAN IPv4 address found. Make sure you are connected to a network."
+    );
+  }
+
+  return {
+    url: `http://${target.address}:${port}`,
+    host: target.address,
+    port,
+    interface: target.interface,
+  };
 }
-
-/**
- * Display help information
- */
-function showHelp() {
-  console.log(`
-📱 QR Port - Generate QR codes for local development servers
-
-Usage:
-  qr-port [port]
-
-Arguments:
-  port        Port number (1-65535, default: 3000)
-
-Examples:
-  qr-port           # Uses port 3000
-  qr-port 8080      # Uses port 8080
-  qr-port --help    # Shows this help
-
-The QR code will contain the URL to access your local server from mobile devices.
-`);
-}
-
-// Handle help flag
-if (argv.includes("--help") || argv.includes("-h")) {
-  showHelp();
-  exit(0);
-}
-
-// Get local IP address
-const localIP = getLocalIP();
-
-if (!localIP) {
-  console.error("❌ Could not find a local network IP address.");
-  console.error("   Make sure you are connected to a network.");
-  exit(1);
-}
-
-// Parse port from command line arguments
-const port = parsePort(argv[2]);
-const url = `http://${localIP}:${port}`;
-
-console.log(`🚀 Generating QR code for: ${url}\n`);
-
-// Generate QR code
-qrcode.generate(url, { small: true }, (qrcode) => {
-  console.log(`📱 Scan this QR code to access your server:\n`);
-  console.log(qrcode);
-  console.log(`\n🌐 Or visit: ${url}`);
-  console.log(`📋 Local IP: ${localIP}`);
-  console.log(`🔌 Port: ${port}\n`);
-});
