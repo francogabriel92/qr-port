@@ -5,41 +5,50 @@ import { networkInterfaces } from "os";
 import { argv, exit } from "process";
 import qrcode from "qrcode-terminal";
 
+// Interfaces created by VMs, containers, VPNs and peer-to-peer links. They hold
+// valid IPv4 addresses that no phone on the LAN can reach, so they rank last.
+const VIRTUAL_INTERFACE =
+  /^(awdl|br-|docker|llw|ppp|tap|tun|utun|veth|virbr|vmnet|vboxnet|wg|zt)/i;
+
+// Self-assigned addresses: the interface has no working DHCP lease.
+const LINK_LOCAL = /^169\.254\./;
+
+const PRIVATE_RANGE = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/;
+
+// Node <= 17 reports family as "IPv4", Node >= 18 as the number 4.
+const isIPv4 = (net) => net.family === "IPv4" || net.family === 4;
+
 /**
- * Get the local network IP address
- * @returns {string|null} The first available local IP address or null if none found
+ * Rank a candidate address. Higher is more likely to be reachable from a phone
+ * sitting on the same network.
+ * @param {{name: string, address: string}} candidate
+ * @returns {number}
+ */
+function rank({ name, address }) {
+  if (VIRTUAL_INTERFACE.test(name)) return 0;
+  return PRIVATE_RANGE.test(address) ? 2 : 1;
+}
+
+/**
+ * Get the local network IP address most likely to be reachable from a phone.
+ * @returns {string|null} The best local IP address, or null if none found
  */
 function getLocalIP() {
-  const nets = networkInterfaces();
-  const results = {};
+  const interfaces = networkInterfaces();
+  const candidates = [];
 
-  // Collect all non-internal IPv4 addresses
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name]) {
-      // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
-      // 'IPv4' is in Node <= 17, from 18 it's a number 4 or 6
-      const familyV4Value = typeof net.family === "string" ? "IPv4" : 4;
-      if (net.family === familyV4Value && !net.internal) {
-        if (!results[name]) {
-          results[name] = [];
-        }
-        results[name].push(net.address);
-      }
+  for (const [name, nets] of Object.entries(interfaces)) {
+    for (const net of nets ?? []) {
+      if (!isIPv4(net) || net.internal || LINK_LOCAL.test(net.address)) continue;
+      candidates.push({ name, address: net.address });
     }
   }
 
-  // Try to find IP address in order of preference
-  const preferredInterfaces = ["en0", "eth0", "wlan0", "wifi0"];
+  // Array#sort is stable, so ties keep the order reported by the OS, which
+  // already lists the primary interface first.
+  candidates.sort((a, b) => rank(b) - rank(a));
 
-  for (const interfaceName of preferredInterfaces) {
-    if (results[interfaceName] && results[interfaceName].length > 0) {
-      return results[interfaceName][0];
-    }
-  }
-
-  // Fallback to first available IP
-  const allIPs = Object.values(results).flat();
-  return allIPs.length > 0 ? allIPs[0] : null;
+  return candidates.length > 0 ? candidates[0].address : null;
 }
 
 /**
