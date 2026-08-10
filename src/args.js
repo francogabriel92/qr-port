@@ -14,6 +14,7 @@ Options:
   --https           Build an https:// URL
   --url             Print just the URL
   --json            Print the result as JSON
+  --list            List every LAN address found, best candidate first
   -h, --help        Show this help
 
 Examples:
@@ -22,6 +23,7 @@ Examples:
   open $(qr-port 8080 --url)    # Pipe the URL somewhere else
   qr-port 8080 --json           # { "url": "...", "host": "...", ... }
   qr-port 8080 --host 10.0.0.5  # When detection picks the wrong address
+  qr-port --list                # Find the address to pass to --host
 
 The QR code will contain the URL to access your local server from mobile devices.
 `;
@@ -31,7 +33,7 @@ The QR code will contain the URL to access your local server from mobile devices
  *
  * @param {string[]} args Arguments after the node binary and the script path.
  * @returns {{ port: number, host: string | null, protocol: "http" | "https",
- *   format: "qr" | "url" | "json", command: "generate" | "help" }}
+ *   format: "qr" | "url" | "json", command: "generate" | "list" | "help" }}
  * @throws {Error} On an unknown option, a missing value, an extra argument or
  *   an invalid port.
  */
@@ -52,6 +54,9 @@ export function parseArgs(args) {
       case "-h":
       case "--help":
         return { ...options, command: "help" };
+      case "--list":
+        options.command = "list";
+        break;
       case "--url":
         options.format = "url";
         break;

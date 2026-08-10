@@ -3,7 +3,7 @@
 import { argv, exit } from "node:process";
 import qrcode from "qrcode-terminal";
 import { HELP, parseArgs } from "./args.js";
-import { resolveLanUrl } from "./index.js";
+import { listLanAddresses, resolveLanUrl } from "./index.js";
 
 const RENDER = {
   url: ({ url }) => console.log(url),
@@ -23,11 +23,29 @@ const RENDER = {
   },
 };
 
+function listAddresses(format) {
+  const addresses = listLanAddresses();
+
+  if (format === "json") {
+    console.log(JSON.stringify({ addresses }, null, 2));
+    return;
+  }
+
+  for (const { interface: name, address } of addresses) {
+    console.log(`${name}\t${address}`);
+  }
+}
+
 function main() {
   const options = parseArgs(argv.slice(2));
 
   if (options.command === "help") {
     console.log(HELP);
+    return;
+  }
+
+  if (options.command === "list") {
+    listAddresses(options.format);
     return;
   }
 

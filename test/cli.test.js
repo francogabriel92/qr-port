@@ -57,3 +57,22 @@ describe("cli", () => {
     assert.match(stdout, /Usage:/);
   });
 });
+
+describe("cli --list", () => {
+  it("lists the detected addresses as text", () => {
+    const { status, stdout } = run("--list");
+
+    assert.equal(status, 0);
+    assert.match(stdout, /^\S+\t[\d.]+$/m);
+  });
+
+  it("lists them as JSON when asked", () => {
+    const { status, stdout } = run("--list", "--json");
+    const { addresses } = JSON.parse(stdout);
+
+    assert.equal(status, 0);
+    assert.ok(addresses.length > 0);
+    assert.ok(addresses[0].interface);
+    assert.match(addresses[0].address, /^[\d.]+$/);
+  });
+});
