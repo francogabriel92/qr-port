@@ -17,6 +17,30 @@ describe("cli", () => {
     assert.match(stdout, /█/);
   });
 
+  it("prints only the URL with --url", () => {
+    const { status, stdout } = run("8080", "--url");
+
+    assert.equal(status, 0);
+    assert.match(stdout.trim(), /^http:\/\/[\d.]+:8080$/);
+  });
+
+  it("prints a parseable object with --json", () => {
+    const { status, stdout } = run("8080", "--json");
+    const result = JSON.parse(stdout);
+
+    assert.equal(status, 0);
+    assert.equal(result.port, 8080);
+    assert.equal(result.url, `http://${result.host}:8080`);
+    assert.ok(result.interface);
+  });
+
+  it("reports errors as JSON when --json was asked for", () => {
+    const { status, stderr } = run("abc", "--json");
+
+    assert.equal(status, 1);
+    assert.match(JSON.parse(stderr).error, /Invalid port/);
+  });
+
   it("exits with an error on an invalid port", () => {
     for (const arg of ["abc", "0", "70000", "3000abc"]) {
       const { status, stderr } = run(arg);

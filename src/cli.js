@@ -5,6 +5,24 @@ import qrcode from "qrcode-terminal";
 import { HELP, parseArgs } from "./args.js";
 import { resolveLanUrl } from "./index.js";
 
+const RENDER = {
+  url: ({ url }) => console.log(url),
+
+  json: (result) => console.log(JSON.stringify(result, null, 2)),
+
+  qr: ({ url, host, port }) => {
+    console.log(`🚀 Generating QR code for: ${url}\n`);
+
+    qrcode.generate(url, { small: true }, (qr) => {
+      console.log("📱 Scan this QR code to access your server:\n");
+      console.log(qr);
+      console.log(`\n🌐 Or visit: ${url}`);
+      console.log(`📋 Local IP: ${host}`);
+      console.log(`🔌 Port: ${port}\n`);
+    });
+  },
+};
+
 function main() {
   const options = parseArgs(argv.slice(2));
 
@@ -13,22 +31,17 @@ function main() {
     return;
   }
 
-  const { url, host, port } = resolveLanUrl({ port: options.port });
-
-  console.log(`🚀 Generating QR code for: ${url}\n`);
-
-  qrcode.generate(url, { small: true }, (qr) => {
-    console.log("📱 Scan this QR code to access your server:\n");
-    console.log(qr);
-    console.log(`\n🌐 Or visit: ${url}`);
-    console.log(`📋 Local IP: ${host}`);
-    console.log(`🔌 Port: ${port}\n`);
-  });
+  RENDER[options.format](resolveLanUrl({ port: options.port }));
 }
 
 try {
   main();
 } catch (error) {
-  console.error(`❌ ${error.message}`);
+  // Read from the raw arguments: parsing itself is what may have failed.
+  if (argv.includes("--json")) {
+    console.error(JSON.stringify({ error: error.message }));
+  } else {
+    console.error(`❌ ${error.message}`);
+  }
   exit(1);
 }

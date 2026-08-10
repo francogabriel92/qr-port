@@ -4,9 +4,28 @@ import { parseArgs } from "../src/args.js";
 import { DEFAULT_PORT } from "../src/index.js";
 
 describe("parseArgs", () => {
-  it("defaults to the default port", () => {
+  it("defaults to a QR code on the default port", () => {
     assert.deepEqual(parseArgs([]), {
       port: DEFAULT_PORT,
+      format: "qr",
+      command: "generate",
+    });
+  });
+
+  it("selects an output format", () => {
+    assert.equal(parseArgs(["--url"]).format, "url");
+    assert.equal(parseArgs(["--json"]).format, "json");
+  });
+
+  it("keeps the port alongside a format flag, in any order", () => {
+    assert.deepEqual(parseArgs(["--json", "8080"]), {
+      port: 8080,
+      format: "json",
+      command: "generate",
+    });
+    assert.deepEqual(parseArgs(["8080", "--json"]), {
+      port: 8080,
+      format: "json",
       command: "generate",
     });
   });
