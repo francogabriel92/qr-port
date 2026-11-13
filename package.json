@@ -38,7 +38,7 @@
     "url": "https://github.com/francogabriel92/qr-port/issues"
   },
   "homepage": "https://github.com/francogabriel92/qr-port#readme",
-  "author": "Franco Sánchez <francog.sanchez@hotmail.com>",
+  "author": "Franco Sánchez <hello@fgs-dev.com.ar> (https://fgs-dev.com.ar)",
   "license": "MIT",
   "dependencies": {
     "qrcode-terminal": "^0.12.0"
