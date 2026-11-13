@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1]
+
+Fixes only. No new flags, fields or exports.
+
+### Fixed
+
+- **`--host` swallowed the next flag.** `qr-port --host --json` printed a QR
+  code for `http://--json:3000` and exited 0. It now fails with
+  "--host requires an address".
+- **`--host` built broken URLs.** IPv6 addresses had no brackets, and
+  `10.0.0.5:8080` produced `http://10.0.0.5:8080:3000`. `--host` and
+  `resolveLanUrl({ host })` now accept an IPv4 address, an IPv6 address or a
+  hostname. An IPv6 host goes into `url` in brackets and into `host` without.
+- **`resolveLanUrl` accepted any protocol.** It now rejects anything other than
+  `http` or `https`.
+- **Detection picked VM and container adapters.** VirtualBox, VMware, the WSL
+  and Default Switch Hyper-V adapters, macOS `bridge100`, Podman, LXD, CNI and
+  Tailscale now rank last.
+- **Detection demoted the Hyper-V external switch.** `/veth/i` matched
+  "vEthernet (External Switch)", which carries the real LAN address.
+- **`--list` exited 0 with no output** when the machine had no LAN address. It
+  now exits 1.
+- **Flags were silently ignored.** `--list` with a port, `--host`, `--https` or
+  `--url` now fails. `--url` with `--json` fails too.
+- **The port accepted `1e3`, `0x50` and `" 80"`.** Only decimal digits pass.
+  `-5` reports an invalid port instead of an unknown option.
+- **A bad argument hid the help.** `qr-port abc --help` now shows the help.
+- **The Vite example in the README never loaded on the phone.** It used port
+  3000, a Vite bound to `localhost`, and a comment that broke the JSON. It now
+  uses port 5173, `--host` and `--clearScreen false`.
+- **Next.js 16 blocks hot reload from the LAN address.** The README and the
+  skill now document `allowedDevOrigins`. Next.js does not need `-H 0.0.0.0`.
+- **The skill could run an older installed copy.** It now calls
+  `npx qr-port@latest`.
+- **A failed tag push after publishing blocked the release.** A rerun now skips
+  the publish and finishes the tag and the release. The workflow also pins npm
+  to 11 and runs one publish at a time.
+- `src/cli.js` is executable in the repository again. `package-lock.json`
+  matches `package.json`.
+
 ## [1.2.0]
 
 Everything here is additive. `qr-port 3000` still prints the same QR code it

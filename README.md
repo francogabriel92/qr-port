@@ -65,6 +65,9 @@ This will display a QR code in your terminal. Scan it with your mobile device to
 The QR code is the default, so `qr-port 3000` behaves exactly as it always has.
 Everything above is opt-in.
 
+`--url` and `--json` exclude each other. `--list` takes only `--json`.
+`--host` accepts an IPv4 address, an IPv6 address or a hostname.
+
 ```bash
 open $(qr-port 3000 --url)      # http://192.168.1.10:3000
 qr-port 3000 --host 10.0.0.5    # when detection picks the wrong address
@@ -82,50 +85,49 @@ qr-port --list
 ```
 
 If the first one is wrong, force another with `--host`. If every address looks
-right and it still fails, the dev server is probably bound to loopback — it has
-to listen on `0.0.0.0` (`vite --host`, `next dev -H 0.0.0.0`,
-`HOST=0.0.0.0 npm start`). A correct URL cannot reach a server that only accepts
-connections from the machine it runs on.
+right and it still fails, the dev server is probably bound to loopback. It has
+to listen on `0.0.0.0`: Vite needs `vite --host`. A correct URL cannot reach a
+server that only accepts connections from the machine it runs on.
+
+Next.js already listens on every interface. Since version 16 it blocks its dev
+scripts and hot reload for any origin other than `localhost`: the page loads on
+the phone but never updates. Allow the address in `next.config.js`:
+
+```js
+module.exports = { allowedDevOrigins: ["192.168.1.10"] };
+```
 
 ## Vite or Next.js Integration
 
-For Vite or Next.js projects, you can integrate `qr-port` into your development workflow easily.
+Print the QR code first, then start the server. Replace the port if yours
+differs. Without a network, `qr-port` exits 1 and `&&` skips the server: run
+the server alone then.
 
 ### Vite
 
-1. Modify the dev script to your `package.json`:
+Vite listens on `localhost` only, and clears the terminal on startup, which
+wipes the QR code. `--host` and `--clearScreen false` fix both:
 
-   ```json
-   {
-     "scripts": {
-       "dev": "npx qr-port 3000 & vite" // Replace with your port
-     }
-   }
-   ```
-
-2. Run the script:
-
-```bash
-npm run dev
+```json
+{
+  "scripts": {
+    "dev": "npx qr-port 5173 && vite --host --clearScreen false"
+  }
+}
 ```
 
 ### Next.js
 
-1. Modify the dev script to your `package.json`:
-
-   ```json
-   {
-     "scripts": {
-       "dev": "npx qr-port 3000 & next dev" // Replace with your port
-     }
-   }
-   ```
-
-2. Run the script:
-
-```bash
-npm run dev
+```json
+{
+  "scripts": {
+    "dev": "npx qr-port 3000 && next dev"
+  }
+}
 ```
+
+On Next.js 16 or later, also set `allowedDevOrigins` as shown in
+[When the URL does not load](#when-the-url-does-not-load).
 
 ## Use with AI coding agents
 
@@ -155,8 +157,8 @@ npx skills add francogabriel92/qr-port
 It tells the agent to prefer `--url` over the QR code, to stay on the LAN instead
 of reaching for a tunnelling service, and how to diagnose a URL that does not
 load. The source lives in [`skills/qr-port/SKILL.md`](skills/qr-port/SKILL.md)
-and ships inside the npm package, so it never documents flags the installed
-version does not have.
+and ships inside the npm package. It calls `npx qr-port@latest`, so an older
+copy installed in the project cannot answer flags it does not have.
 
 ## Programmatic API
 
@@ -174,8 +176,10 @@ listLanAddresses();
 // [{ interface: 'en0', address: '192.168.1.10' }, ...] — best candidate first
 ```
 
-`resolveLanUrl` throws if the port is outside 1-65535, or if the machine has no
-LAN address at all. `listLanAddresses` returns every usable IPv4 address it
+`resolveLanUrl` throws if the port is outside 1-65535, if `protocol` is not
+`http` or `https`, if `host` is not an IP address or a hostname, or if the
+machine has no LAN address at all. An IPv6 `host` comes back bare and goes into
+`url` in brackets. `listLanAddresses` returns every usable IPv4 address it
 found, ordered by how likely it is to be reachable from a phone: virtual
 interfaces (Docker, VPNs, VMs) rank last, and link-local addresses are excluded.
 

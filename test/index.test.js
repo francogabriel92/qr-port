@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_PORT, listLanAddresses, resolveLanUrl } from "../src/index.js";
 
+// Tests that exercise real detection need a LAN address on this machine.
+const offline = listLanAddresses().length === 0 && "no LAN IPv4 address here";
+
 /** Build a networkInterfaces()-shaped fixture from a compact description. */
 function interfaces(entries) {
   return Object.fromEntries(
@@ -102,6 +105,61 @@ describe("listLanAddresses", () => {
     assert.equal(found[0].address, "172.17.0.1");
   });
 
+  // Each case lists the virtual interface first, so OS order cannot save it.
+  for (const [name, address] of [
+    ["VirtualBox Host-Only Network", "192.168.56.1"],
+    ["VMware Network Adapter VMnet8", "192.168.74.1"],
+    ["vEthernet (WSL)", "172.29.16.1"],
+    ["vEthernet (Default Switch)", "172.20.0.1"],
+    ["bridge100", "192.168.64.1"],
+    ["br-3f2a9c1d7e4b", "172.18.0.1"],
+    ["podman0", "10.88.0.1"],
+    ["lxdbr0", "10.10.10.1"],
+    ["cni0", "10.244.0.1"],
+    ["tailscale0", "100.101.102.103"],
+  ]) {
+    it(`prefers the LAN over ${name}`, () => {
+      const found = listLanAddresses(
+        interfaces({ [name]: [{ address }], "Wi-Fi": [{ address: "192.168.1.10" }] })
+      );
+
+      assert.equal(found[0].address, "192.168.1.10");
+    });
+  }
+
+  it("prefers a LAN with a public address over a VM bridge", () => {
+    const found = listLanAddresses(
+      interfaces({
+        bridge100: [{ address: "192.168.64.1" }],
+        en0: [{ address: "203.0.113.5" }],
+      })
+    );
+
+    assert.equal(found[0].address, "203.0.113.5");
+  });
+
+  it("keeps a Hyper-V external switch, which carries the real LAN", () => {
+    const found = listLanAddresses(
+      interfaces({
+        "vEthernet (External Switch)": [{ address: "192.168.1.10" }],
+        "VirtualBox Host-Only Network": [{ address: "192.168.56.1" }],
+      })
+    );
+
+    assert.equal(found[0].address, "192.168.1.10");
+  });
+
+  it("keeps real bridges such as OpenWrt's br-lan", () => {
+    const found = listLanAddresses(
+      interfaces({
+        eth1: [{ address: "203.0.113.7" }],
+        "br-lan": [{ address: "192.168.1.1" }],
+      })
+    );
+
+    assert.equal(found[0].address, "192.168.1.1");
+  });
+
   it("returns an empty list when there is no usable address", () => {
     assert.deepEqual(listLanAddresses({}), []);
     assert.deepEqual(listLanAddresses({ lo0: undefined }), []);
@@ -115,7 +173,7 @@ describe("resolveLanUrl", () => {
     }
   });
 
-  it("builds a URL on the detected address", () => {
+  it("builds a URL on the detected address", { skip: offline }, () => {
     const result = resolveLanUrl({ port: 8080 });
 
     assert.equal(result.port, 8080);
@@ -124,7 +182,16 @@ describe("resolveLanUrl", () => {
   });
 
   it("defaults to port 3000", () => {
-    assert.equal(resolveLanUrl().port, DEFAULT_PORT);
+    assert.equal(resolveLanUrl({ host: "10.0.0.5" }).port, DEFAULT_PORT);
+  });
+
+  it("rejects a protocol other than http or https", () => {
+    for (const protocol of ["ftp", "https:", "javascript"]) {
+      assert.throws(
+        () => resolveLanUrl({ host: "10.0.0.5", protocol }),
+        /Invalid protocol/
+      );
+    }
   });
 });
 
@@ -138,9 +205,40 @@ describe("resolveLanUrl overrides", () => {
   });
 
   it("builds an https URL", () => {
-    const result = resolveLanUrl({ port: 8080, protocol: "https" });
+    const result = resolveLanUrl({ port: 8080, host: "10.0.0.5", protocol: "https" });
 
     assert.equal(result.protocol, "https");
-    assert.match(result.url, /^https:\/\//);
+    assert.equal(result.url, "https://10.0.0.5:8080");
+  });
+
+  it("brackets an IPv6 host in the URL only", () => {
+    for (const host of ["fe80::1", "[fe80::1]"]) {
+      const result = resolveLanUrl({ port: 8080, host });
+
+      assert.equal(result.url, "http://[fe80::1]:8080");
+      assert.equal(result.host, "fe80::1");
+      assert.doesNotThrow(() => new URL(result.url));
+    }
+  });
+
+  it("accepts hostnames", () => {
+    for (const host of ["localhost", "my-mac.local", "dev.example.com"]) {
+      assert.equal(resolveLanUrl({ port: 8080, host }).url, `http://${host}:8080`);
+    }
+  });
+
+  it("rejects a host that would break the URL", () => {
+    for (const host of [
+      "10.0.0.5:8080",
+      "http://10.0.0.5",
+      "x/y",
+      "a b",
+      " ",
+      "--json",
+      "fe80::1%en0",
+      "user@evil.com",
+    ]) {
+      assert.throws(() => resolveLanUrl({ host }), /Invalid host/, `host: ${host}`);
+    }
   });
 });
