@@ -4,7 +4,7 @@ description: Get a URL that opens a local dev server on a phone or any other dev
 license: MIT
 compatibility: Requires Node.js 18+ and network access to run npx qr-port
 metadata:
-  version: "1.2.1"
+  version: "1.2.2"
 ---
 
 # qr-port
