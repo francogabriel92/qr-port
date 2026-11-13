@@ -100,7 +100,8 @@ module.exports = { allowedDevOrigins: ["192.168.1.10"] };
 ## Vite or Next.js Integration
 
 Print the QR code first, then start the server. Replace the port if yours
-differs.
+differs. Without a network, `qr-port` exits 1 and `&&` skips the server: run
+the server alone then.
 
 ### Vite
 
@@ -156,7 +157,7 @@ npx skills add francogabriel92/qr-port
 It tells the agent to prefer `--url` over the QR code, to stay on the LAN instead
 of reaching for a tunnelling service, and how to diagnose a URL that does not
 load. The source lives in [`skills/qr-port/SKILL.md`](skills/qr-port/SKILL.md)
-and ships inside the npm package. It calls `npx qr-port@^1.2.0`, so an older
+and ships inside the npm package. It calls `npx qr-port@latest`, so an older
 copy installed in the project cannot answer flags it does not have.
 
 ## Programmatic API

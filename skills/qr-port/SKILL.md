@@ -17,11 +17,11 @@ Always pass `--url` or `--json`. The default output is a QR code — around 25
 lines of block characters, which you cannot scan and which costs context.
 
 ```bash
-npx qr-port@^1.2.0 3000 --url    # http://192.168.1.10:3000
-npx qr-port@^1.2.0 3000 --json   # { "url", "host", "port", "protocol", "interface" }
+npx qr-port@latest 3000 --url    # http://192.168.1.10:3000
+npx qr-port@latest 3000 --json   # { "url", "host", "port", "protocol", "interface" }
 ```
 
-Keep the version range. Without it, an older copy installed in the project
+Keep `@latest`. Without it, an older copy installed in the project
 answers instead, and it ignores `--url`.
 
 Then hand the URL to the user. You cannot verify anything on their phone, so
@@ -29,7 +29,7 @@ this is a handoff: they open it, they report back.
 
 ## Do not
 
-- **Do not run bare `npx qr-port@^1.2.0 3000`.** It prints the QR code into your context.
+- **Do not run bare `npx qr-port@latest 3000`.** It prints the QR code into your context.
 - **Do not reach for ngrok, localtunnel or cloudflared** for same-network
   testing. They route through a third party, usually need an account, and expose
   the dev server to the internet. This stays on the LAN.
@@ -43,8 +43,8 @@ this is a handoff: they open it, they report back.
 First, check what else was available:
 
 ```bash
-npx qr-port@^1.2.0 --list --json   # every candidate, best first
-npx qr-port@^1.2.0 3000 --host 10.0.0.5 --url
+npx qr-port@latest --list --json   # every candidate, best first
+npx qr-port@latest 3000 --host 10.0.0.5 --url
 ```
 
 `--list` exits 1 when the machine has no LAN address at all. Then the user is

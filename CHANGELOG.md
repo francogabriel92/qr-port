@@ -38,7 +38,7 @@ Fixes only. No new flags, fields or exports.
 - **Next.js 16 blocks hot reload from the LAN address.** The README and the
   skill now document `allowedDevOrigins`. Next.js does not need `-H 0.0.0.0`.
 - **The skill could run an older installed copy.** It now calls
-  `npx qr-port@^1.2.0`.
+  `npx qr-port@latest`.
 - **A failed tag push after publishing blocked the release.** A rerun now skips
   the publish and finishes the tag and the release. The workflow also pins npm
   to 11 and runs one publish at a time.
