@@ -5,6 +5,11 @@ name: Publish to NPM
 on:
   workflow_dispatch:
 
+# Two dispatches at once would both pass the guards below.
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -30,7 +35,7 @@ jobs:
       - name: Use an npm that supports trusted publishing
         # OIDC publishing needs npm >= 11.5.1, newer than what some Node 24
         # releases bundle. Cheaper than debugging an ENEEDAUTH at publish time.
-        run: npm install -g npm@latest
+        run: npm install -g npm@11
 
       - name: Configure Git
         run: |
@@ -48,6 +53,9 @@ jobs:
         run: echo "value=$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
 
       - name: Refuse to republish an existing version
+        id: guard
+        # A version on npm without its tag means an earlier run published and
+        # then failed. Skip the publish and finish the tag and the release.
         run: |
           VERSION='${{ steps.version.outputs.value }}'
           if git rev-parse "v$VERSION" >/dev/null 2>&1; then
@@ -55,8 +63,8 @@ jobs:
             exit 1
           fi
           if npm view "qr-port@$VERSION" version >/dev/null 2>&1; then
-            echo "qr-port@$VERSION is already on npm."
-            exit 1
+            echo "qr-port@$VERSION is already on npm. Resuming with the tag and the release."
+            echo "published=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Extract the release notes
@@ -72,6 +80,7 @@ jobs:
           fi
 
       - name: Publish to NPM
+        if: steps.guard.outputs.published != 'true'
         # Authenticates over OIDC using the id-token permission above, so there
         # is no NPM_TOKEN. Requires qr-port to have this repository and workflow
         # registered as a trusted publisher on npmjs.com.
