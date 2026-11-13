@@ -27,6 +27,12 @@ const RENDER = {
 function listAddresses(format) {
   const addresses = listLanAddresses();
 
+  if (addresses.length === 0) {
+    throw new Error(
+      "No LAN IPv4 address found. Make sure you are connected to a network."
+    );
+  }
+
   if (format === "json") {
     console.log(JSON.stringify({ addresses }, null, 2));
     return;
@@ -37,8 +43,12 @@ function listAddresses(format) {
   }
 }
 
+// Read from the raw arguments until parsing succeeds: parsing may be what fails.
+let format = argv.includes("--json") ? "json" : "qr";
+
 function main() {
   const options = parseArgs(argv.slice(2));
+  format = options.format;
 
   if (options.command === "help") {
     console.log(HELP);
@@ -61,8 +71,7 @@ function main() {
 try {
   main();
 } catch (error) {
-  // Read from the raw arguments: parsing itself is what may have failed.
-  if (argv.includes("--json")) {
+  if (format === "json") {
     console.error(JSON.stringify({ error: error.message }));
   } else {
     console.error(`❌ ${error.message}`);

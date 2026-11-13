@@ -27,6 +27,10 @@ Examples:
   qr-port --list                # Find the address to pass to --host
 
 The QR code will contain the URL to access your local server from mobile devices.
+The server has to listen on 0.0.0.0, not only on localhost.
+
+Exits 0 on success and 1 on failure. With --json, errors go to stderr as
+{"error": "..."}.
 `;
 
 /**
@@ -36,8 +40,8 @@ The QR code will contain the URL to access your local server from mobile devices
  * @returns {{ port: number, host: string | null, protocol: "http" | "https",
  *   format: "qr" | "url" | "json",
  *   command: "generate" | "list" | "help" | "version" }}
- * @throws {Error} On an unknown option, a missing value, an extra argument or
- *   an invalid port.
+ * @throws {Error} On an unknown option, a missing value, an extra argument,
+ *   an invalid port or conflicting flags.
  */
 export function parseArgs(args) {
   const options = {
@@ -49,37 +53,61 @@ export function parseArgs(args) {
   };
   let portSeen = false;
 
+  // Help and version win wherever they appear, even next to a bad argument.
+  if (args.includes("-h") || args.includes("--help")) {
+    return { ...options, command: "help" };
+  }
+  if (args.includes("-v") || args.includes("--version")) {
+    return { ...options, command: "version" };
+  }
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
     switch (arg) {
-      case "-h":
-      case "--help":
-        return { ...options, command: "help" };
-      case "-v":
-      case "--version":
-        return { ...options, command: "version" };
       case "--list":
         options.command = "list";
         break;
       case "--url":
-        options.format = "url";
+      case "--json": {
+        const format = arg.slice(2);
+        if (options.format !== "qr" && options.format !== format) {
+          throw new Error("Pass either --url or --json, not both.");
+        }
+        options.format = format;
         break;
-      case "--json":
-        options.format = "json";
-        break;
+      }
       case "--https":
         options.protocol = "https";
         break;
       case "--host":
         options.host = args[++i] ?? null;
-        if (!options.host) throw new Error("--host requires an address.");
+        // A flag here means the address is missing: `--host $EMPTY --json`.
+        if (!options.host || options.host.startsWith("-")) {
+          throw new Error("--host requires an address.");
+        }
         break;
       default:
-        if (arg.startsWith("-")) throw new Error(`Unknown option: ${arg}`);
+        // "-5" is a bad port, not an unknown option.
+        if (arg.startsWith("-") && !/^-\d/.test(arg)) {
+          throw new Error(`Unknown option: ${arg}`);
+        }
         if (portSeen) throw new Error(`Unexpected argument: ${arg}`);
         options.port = parsePort(arg);
         portSeen = true;
+    }
+  }
+
+  if (options.command === "list") {
+    const ignored = [
+      portSeen && "a port",
+      options.host && "--host",
+      options.protocol === "https" && "--https",
+      options.format === "url" && "--url",
+    ].filter(Boolean);
+
+    if (ignored.length) {
+      throw new Error(`--list does not take ${ignored.join(", ")}.`);
     }
   }
 
@@ -87,7 +115,8 @@ export function parseArgs(args) {
 }
 
 function parsePort(value) {
-  const port = Number(value);
+  // Number() alone accepts "1e3", "0x50" and " 80".
+  const port = /^\d+$/.test(value) ? Number(value) : NaN;
 
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error(

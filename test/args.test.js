@@ -45,8 +45,36 @@ describe("parseArgs", () => {
     assert.equal(parseArgs(["-h"]).command, "help");
   });
 
+  it("shows the help even next to a bad argument", () => {
+    assert.equal(parseArgs(["abc", "--help"]).command, "help");
+    assert.equal(parseArgs(["--nope", "-h"]).command, "help");
+    assert.equal(parseArgs(["abc", "-v"]).command, "version");
+  });
+
+  it("rejects a flag where --host expects an address", () => {
+    for (const flag of ["--json", "--url", "--https"]) {
+      assert.throws(
+        () => parseArgs(["3000", "--host", flag]),
+        /--host requires an address/
+      );
+    }
+  });
+
+  it("rejects --url together with --json", () => {
+    assert.throws(() => parseArgs(["--url", "--json"]), /either --url or --json/);
+    assert.equal(parseArgs(["--json", "--json"]).format, "json");
+  });
+
+  it("rejects flags that --list would ignore", () => {
+    assert.throws(() => parseArgs(["--list", "8080"]), /--list does not take a port/);
+    assert.throws(() => parseArgs(["--list", "--url"]), /--list does not take --url/);
+    assert.throws(() => parseArgs(["--list", "--https"]), /--https/);
+    assert.throws(() => parseArgs(["--list", "--host", "10.0.0.5"]), /--host/);
+    assert.equal(parseArgs(["--list", "--json"]).format, "json");
+  });
+
   it("rejects an invalid port", () => {
-    for (const arg of ["abc", "0", "70000", "3000abc", "1.5"]) {
+    for (const arg of ["abc", "0", "70000", "3000abc", "1.5", "1e3", "0x50", " 80", "+80", "-5"]) {
       assert.throws(() => parseArgs([arg]), /Invalid port/, `port: ${arg}`);
     }
   });
